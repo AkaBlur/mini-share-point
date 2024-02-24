@@ -8,9 +8,14 @@ ENV MSP_MODCONF_PATH=/config/modules.ini
 ENV MSP_LOGFILE_PATH=/log
 
 # SETUP
+# configuration
+COPY --chmod=644 config-docker /config/
+# custom modules
+COPY --chmod=644 modules /app/modules/
+
 # Python packages
-COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+COPY requirements.txt /app/
+RUN pip install -r /app/requirements.txt
 
 # Utility stuff
 COPY --chmod=644 util /app/util/

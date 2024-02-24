@@ -9,6 +9,6 @@ services:
       - 8000:8000
     volumes:
       - ./config-docker:/config
-      - ./mods:/app/modules
+      - ./modules:/app/modules
       - ./log:/log
       - ./sec:/sec
