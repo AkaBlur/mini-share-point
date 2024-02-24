@@ -1,0 +1,30 @@
+#!/bin/bash
+# deletes all clients
+
+read -p "This will delete all registered clients and saved keyfiles! Proceed? (y|n)" yn
+
+case $yn in
+    [yY] ) echo "Deleting all clients...";;
+    [nN] ) echo "Abort";
+        exit 0;;
+    * ) echo "Invalid input!";
+        exit 1;;
+esac
+
+CLIENT_FILES="/sec/client_*"
+
+for f in $CLIENT_FILES;do
+    echo "Deleting $f"
+    rm $f
+
+done
+
+echo "Deregistering clients..."
+
+rm /sec/clients.dev
+touch /sec/clients.dev
+chmod 644 /sec/clients.dev
+
+echo "==================================="
+echo "== PLEASE RESTART THE CONTAINER! =="
+echo "==================================="

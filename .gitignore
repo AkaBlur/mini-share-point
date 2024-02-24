@@ -1,0 +1,9 @@
+__pycache__
+.venv
+.venvlin
+.vscode
+*.key
+*.pub
+*.dev
+*.secret
+*.log

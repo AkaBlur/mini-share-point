@@ -1,0 +1,9 @@
+#!/bin/bash
+# appends a client to the local storage
+
+if ! python3 /app/mini_share_point/append_client.py $1; then
+    exit 1
+fi
+
+SERVER_PUB_KEY=$(cat /sec/server.pub)
+printf "Server public key:\n\t$SERVER_PUB_KEY\n"

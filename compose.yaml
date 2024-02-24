@@ -1,0 +1,14 @@
+# this is a basic development compose file
+services:
+  mini-share-point:
+    build: .
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - 8000:8000
+    volumes:
+      - ./config-docker:/config
+      - ./mods:/app/modules
+      - ./log:/log
+      - ./sec:/sec
