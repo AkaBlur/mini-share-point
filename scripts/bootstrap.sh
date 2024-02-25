@@ -3,8 +3,6 @@
 
 # running preinit, if mounted dirs are empty
 ./preinit.sh
-# running preconfiguration for setup
-./preconfig.sh
 
 # check and update user UID and GID for default user
 if [ -z "${PUID-}" ];then
