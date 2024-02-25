@@ -1,5 +1,8 @@
+"""This file implements a simple client for authentication with the Server endpoint"""
+
 import base64
 import binascii
+import dataclasses
 import json
 import logging
 from nacl.public import PrivateKey, PublicKey, Box
@@ -10,12 +13,15 @@ import sys
 import time
 
 
-ClientSecret =  "util/client.secret"
-ClientKeyFile = "util/client.key"
-ServerPubFile = "util/server.pub"
+@dataclasses.dataclass
+class KeyStorage:
+    ClientSecret: str
+    ClientSK: PrivateKey
+    ServerPK: PublicKey
 
 
 def check_file_exist(Filepath: str) -> bool:
+    """Utility function to check if a file exists"""
     if os.path.exists(Filepath) and os.path.isfile(Filepath):
         return True
 
@@ -24,10 +30,11 @@ def check_file_exist(Filepath: str) -> bool:
         return False
 
 
-def send_auth(URL: str):
-    SecKey = ""
-    SKClient = None
-    PKServer = None
+def load_keystore(
+    ClientSecret: str, ClientKeyFile: str, ServerPubFile: str
+) -> KeyStorage:
+    """Load all necessary key files for operation"""
+    RetStore = KeyStorage
 
     # client hex secret
     if not check_file_exist(ClientSecret):
@@ -35,7 +42,7 @@ def send_auth(URL: str):
         exit(1)
 
     with open(ClientSecret) as Keyfile:
-        SecKey = Keyfile.readline()
+        RetStore.ClientSecret = Keyfile.readline()
 
     # client secret key
     if not check_file_exist(ClientKeyFile):
@@ -57,7 +64,7 @@ def send_auth(URL: str):
             logging.critical("Client private keyfile <%s> malformed!", ClientKeyFile)
             exit(1)
 
-        SKClient = PrivateKey(Keybytes)
+        RetStore.ClientSK = PrivateKey(Keybytes)
 
     # server public key
     check_file_exist(ServerPubFile)
@@ -76,26 +83,33 @@ def send_auth(URL: str):
             logging.critical("Server public keyfile <%s> malformed!", ServerPubFile)
             exit(1)
 
-        PKServer = PublicKey(Keybytes)
+        RetStore.ServerPK = PublicKey(Keybytes)
 
+    return RetStore
+
+
+def prepare_payload(KeyStore: KeyStorage, RemoteMethod: str) -> dict[str, str]:
+    """Generate a JSON-like dictionary to send as request to the server"""
     # encrypted message
-    MsgBox = Box(SKClient, PKServer)
-    SecMsgBytes = SecKey.encode("utf-8")
+    MsgBox = Box(KeyStore.ClientSK, KeyStore.ServerPK)
+    SecMsgBytes = KeyStore.ClientSecret.encode("utf-8")
     MsgEncrypt = MsgBox.encrypt(SecMsgBytes)
 
     # crc32 encrypted message
-    CRCBox = Box(SKClient, PKServer)
+    CRCBox = Box(KeyStore.ClientSK, KeyStore.ServerPK)
     # calculated crc32 from actual key
     SecCRC = binascii.crc32(SecMsgBytes)
     CRCEncrypt = CRCBox.encrypt(SecCRC.to_bytes((SecCRC.bit_length() + 7) // 8, "big"))
     # current timestamp
-    TimeBox = Box(SKClient, PKServer)
+    TimeBox = Box(KeyStore.ClientSK, KeyStore.ServerPK)
     SecTime = int(time.time())
-    TimeEncrypt = TimeBox.encrypt(SecTime.to_bytes((SecTime.bit_length() + 7) // 8, "big"))
+    TimeEncrypt = TimeBox.encrypt(
+        SecTime.to_bytes((SecTime.bit_length() + 7) // 8, "big")
+    )
 
     # encrypted remote function call
-    FuncBox = Box(SKClient, PKServer)
-    FuncEncrypt = FuncBox.encrypt(("time_test").encode("utf-8"))
+    FuncBox = Box(KeyStore.ClientSK, KeyStore.ServerPK)
+    FuncEncrypt = FuncBox.encrypt((RemoteMethod).encode("utf-8"))
 
     # starting here: anything sent could be dangerous!
     StrEncrypt = base64.urlsafe_b64encode(MsgEncrypt).decode("utf-8")
@@ -103,21 +117,21 @@ def send_auth(URL: str):
     StrTime = base64.urlsafe_b64encode(TimeEncrypt).decode("utf-8")
     StrFunc = base64.urlsafe_b64encode(FuncEncrypt).decode("utf-8")
 
-    Data = {
-        "id": StrEncrypt,
-        "check": StrCRC,
-        "ts": StrTime,
-        "entry": StrFunc
-    }
+    Data = {"id": StrEncrypt, "check": StrCRC, "ts": StrTime, "entry": StrFunc}
 
-    Req = requests.post(URL,
-                        data = json.dumps(Data),
-                        headers = {"Content-Type": "application/json"})
+    return Data
+
+
+def send_auth(URL: str, Payload: dict[str, str]) -> str:
+    """Sends the payload to the server and returns the awnser if successful"""
+    Req = requests.post(
+        URL, data=json.dumps(Payload), headers={"Content-Type": "application/json"}
+    )
 
     if Req.status_code == 401:
         logging.warning("Unauthorized request made one: %s", URL)
         return
-    
+
     elif not Req.status_code == 200:
         logging.warning("Request error [%d] on %s:", Req.status_code, URL)
         return
@@ -138,8 +152,13 @@ def send_auth(URL: str):
         logging.critical("Empty response from server!")
         exit(1)
 
-    RespEncrypt = base64.urlsafe_b64decode(EncryptResponse)
-    ResponseBox = Box(SKClient, PKServer)
+    return EncryptResponse
+
+
+def decrypt_awnser(Data: str, KeyStore: KeyStorage) -> str:
+    """Decrypt the resulting message from the server"""
+    RespEncrypt = base64.urlsafe_b64decode(Data)
+    ResponseBox = Box(KeyStore.ClientSK, KeyStore.ServerPK)
     Response = ""
 
     try:
@@ -150,16 +169,26 @@ def send_auth(URL: str):
         logging.critical("Server decryption error!")
         exit(1)
 
-    logging.info("%s", Response)
+    return Response
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format="[%(asctime)s] %(levelname)s: %(message)s", level="INFO")
+
+    # Read in URL to connect to
     if len(sys.argv) != 2:
         print("Usage:\n\tclient.py <URL>")
         exit(1)
-
-    logging.basicConfig(format = "[%(asctime)s] %(levelname)s: %(message)s",
-                        level = "INFO")
-
     URL = sys.argv[1]
-    send_auth(URL)
+
+    # BASIC CLIENT AUTH CHAIN
+    # load the default keys for the client
+    DefaultStorage = load_keystore("client.secret", "client.key", "server.pub")
+    # Generate the payload with a given remote function
+    PL = prepare_payload(DefaultStorage, "time_test")
+    # Send request to the server
+    EncryptAwnser = send_auth(URL, PL)
+    # Decrypt the response
+    DecryptAwnser = decrypt_awnser(EncryptAwnser, DefaultStorage)
+
+    logging.info("%s", DecryptAwnser)
