@@ -1,6 +1,9 @@
 #!/bin/bash
 # initialization script for starting up server
 
+# running preconfiguration for setup
+./preconfig.sh
+
 # check and update user UID and GID for default user
 if [ -z "${PUID-}" ];then
     export PUID=1000

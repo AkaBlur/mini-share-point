@@ -22,7 +22,6 @@ COPY --chmod=644 util /app/util/
 
 # Run preconfigure setup script for internal docker setup
 COPY --chmod=700 scripts/preconfig.sh /app/preconfig.sh
-RUN ./app/preconfig.sh
 
 # script for append clients to the local storage
 COPY --chmod=700 scripts/appendclient /usr/bin/appendclient
