@@ -1,6 +1,8 @@
 #!/bin/bash
 # initialization script for starting up server
 
+# running preinit, if mounted dirs are empty
+./preinit.sh
 # running preconfiguration for setup
 ./preconfig.sh
 

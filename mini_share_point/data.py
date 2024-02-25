@@ -5,7 +5,7 @@ import time
 from . import function_factory, sec_client, sec_server, config
 
 
-Datapoint = Blueprint("data", __name__, url_prefix="/data")
+Datapoint = Blueprint("sharepoint", __name__, url_prefix="/v1")
 IPTable: dict[str, int] = {}
 
 
