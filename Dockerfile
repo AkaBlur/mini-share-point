@@ -26,10 +26,8 @@ COPY --chmod=700 scripts/appendclient /usr/bin/appendclient
 # script for deleting all clients
 COPY --chmod=700 scripts/purgeclients /usr/bin/purgeclients
 
-# Preconfigure setup script before startup
+# Preinitialization setup script before startup
 COPY --chmod=700 scripts/preinit.sh /app/preinit.sh
-# Preconfigure setup script before startup
-COPY --chmod=700 scripts/preconfig.sh /app/preconfig.sh
 # Entrypoint
 COPY --chmod=700 scripts/bootstrap.sh /app/bootstrap.sh
 # Codebase
