@@ -68,6 +68,7 @@ def load_client_keys(ClientKeyPath: str):
 
             PKClient = PublicKey(PKBytes)
             ClientKeys.append(PKClient)
+            logging.getLogger(__name__).debug("Loaded client keyfile: %s", Keyfile)
 
 
 def check_client_register(Secret: str) -> bool:

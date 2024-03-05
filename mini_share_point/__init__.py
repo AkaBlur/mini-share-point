@@ -20,22 +20,27 @@ def setup_server(instance: Flask) -> bool:
     if not function_factory.load_mods(__moduleConfig):
         logging.getLogger(__name__).critical("Could not setup module extensions!")
         return False
+    logging.getLogger(__name__).debug("Modules loaded")
 
     # registering data endpoint
     instance.register_blueprint(data.Datapoint)
+    logging.getLogger(__name__).debug("Registered endpoint")
 
     # loading client secrets
     if not sec_client.load_client_secret(
         config.read_config("Clients", "Register", "sec/clients.dev")
     ):
         return False
+    logging.getLogger(__name__).debug("Client secrets loaded")
 
     # load client public keys
     sec_client.load_client_keys(config.read_config("Clients", "Keypath", "sec"))
+    logging.getLogger(__name__).debug("Public keys for clients loaded")
 
     # load server private key
     if not sec_server.load_server_key(config.read_config("Server", "Keypath", "sec")):
         return False
+    logging.getLogger(__name__).debug("Server keys loaded")
 
     # Proxy headers; sets number of:
     # X-Forwarded-For
@@ -51,7 +56,7 @@ def setup_server(instance: Flask) -> bool:
         x_prefix=int(config.read_config("Proxy", "ForwardPrefix", "0")),
         x_proto=int(config.read_config("Proxy", "ForwardProto", "0")),
     )
-
+    logging.getLogger(__name__).debug("Applied proxy settings")
     logging.getLogger(__name__).debug("Configuration of server done")
     return True
 

@@ -54,6 +54,7 @@ def load_server_key(ServerKeypath: str) -> bool:
 
         SKServer = PrivateKey(SKBytes)
         __SKStore.append(SKServer)
+        logging.getLogger(__name__).debug("Server keyfile loaded")
 
         return True
 
@@ -112,6 +113,8 @@ def decrypt_remote_call(
 
         # check CRC32 value
         CheckCRC = binascii.crc32(SecMsgBytes)
+        logging.getLogger(__name__).debug("Incoming CRC: %s", CheckCRC)
+        logging.getLogger(__name__).debug("Checking against: %s", SecCRC)
 
         # CRC32 values are not identical
         if not CheckCRC == SecCRC:
@@ -130,6 +133,7 @@ def decrypt_remote_call(
         SecKey = SecMsgBytes.decode("utf-8")
         # function to call
         SecFunc = SecFuncBytes.decode("utf-8")
+        logging.getLogger(__name__).debug("Client requested method: %s", SecFunc)
 
         ReturnSuccess = DecryptedMessage(
             ReturnCode.CLIENT_AUTH, SecKey, SecFunc, PKClient

@@ -41,6 +41,7 @@ def check_request_ip(IPAddress: str):
 def post_data_json():
     PostJson = request.get_json(silent=True)
 
+    logging.getLogger(__name__).debug("Incoming request from: %s", request.remote_addr)
     if PostJson is None:
         logging.getLogger(__name__).info("Malformed JSON from: %s", request.remote_addr)
         return "", 401
@@ -70,6 +71,7 @@ def post_data_json():
 
         if Registered:
             FunctionVal = function_factory.call_module(DecryptResponse.FunctionCall)
+            logging.getLogger(__name__).debug("Returned function value: %s", FunctionVal)
             ResponseEncrypt = sec_server.encrypt_message(
                 DecryptResponse.ClientKey, FunctionVal
             )

@@ -19,6 +19,7 @@ def load_mods(ModuleConfigFile: str) -> bool:
     ModConfig = configparser.ConfigParser()
     if util.check_file_exist(ModuleConfigFile):
         ModConfig.read(ModuleConfigFile)
+        logging.getLogger(__name__).debug("Config file loaded")
 
     else:
         logging.getLogger(__name__).critical(
@@ -38,6 +39,7 @@ def load_mods(ModuleConfigFile: str) -> bool:
         try:
             Mod = importlib.import_module(PyModule)
             __ModList[ModName] = Mod
+            logging.getLogger(__name__).debug("Loaded module: %s", ModName)
 
         except ModuleNotFoundError:
             logging.getLogger(__name__).warning(
